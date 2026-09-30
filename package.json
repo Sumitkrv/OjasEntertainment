@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "scripts": {
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend run dev",
+    "dev": "npm run backend"
+  },
+  "dependencies": {
+    "multer": "^2.4.0"
+  }
+}

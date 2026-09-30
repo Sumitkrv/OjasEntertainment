@@ -1,0 +1,23 @@
+.page_not_found {
+	height: 100%;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background: var(--canvas);
+	color: var(--ink);
+	gap: 10px;
+}
+
+.page_not_found_link {
+	padding: 10px 15px;
+	border-radius: 7px;
+	background: var(--blue);
+	color: #fff;
+	text-decoration: none;
+	transition: color 0.3s ease;
+	&:hover {
+		color: #90b4db;
+	}
+}

@@ -1,0 +1,89 @@
+
+:root {
+	--ink: #172033;
+	--muted: #697386;
+	--faint: #94a0b4;
+	--line: #e7ebf1;
+	--surface: #ffffff;
+	--canvas: #f5f7fb;
+	--navy: #101a2d;
+	--navy-muted: #9eabc1;
+	--blue: #3b70e9;
+	--blue-soft: #eaf1ff;
+	--green: #16895b;
+	--green-soft: #e6f7ef;
+	--amber: #bd7314;
+	--amber-soft: #fff2dc;
+	--red: #c44955;
+	--red-soft: #ffebed;
+	--radius: 10px;
+	--shadow: 0 8px 24px rgba(32, 48, 78, 0.06);
+	--font: "Inter", "Segoe UI", sans-serif;
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: var(--font);
+	font-style: normal;
+	-webkit-font-smoothing: antialiased;
+}
+body { background: var(--canvas); color: var(--ink); }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid rgba(59, 112, 233, .28); outline-offset: 2px; }
+#root,
+.app-container {
+	height: 100vh;
+	width: 100vw;
+}
+
+/* Loading Style */
+.loading-container {
+	position: fixed;
+	left: 0px;
+	top: 0px;
+	z-index: 99;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100vh;
+	width: 100vw;
+	background: rgba(245, 247, 251, .72);
+	backdrop-filter: blur(2px);
+}
+
+.loading-box {
+	transform: translateY(-200%);
+}
+
+.loading {
+	height: 60px;
+	width: 60px;
+	border-radius: 50%;
+	border: 8px solid #dce4f0;
+	border-bottom: 10px solid transparent;
+	animation: loading 1.5s infinite linear;
+}
+
+@keyframes loading {
+	to {
+		transform: rotate(0deg);
+	}
+	from {
+		transform: rotate(360deg);
+	}
+}
+
+.status-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; text-transform: capitalize; }
+.status-badge::before { width: 5px; height: 5px; margin-right: 6px; border-radius: 50%; background: currentColor; content: ""; }
+.status-draft, .status-issued, .status-pending { color: #687386; background: #eef1f5; }
+.status-upcoming, .status-info { color: #376bd1; background: var(--blue-soft); }
+.status-ongoing, .status-paid, .status-completed { color: var(--green); background: var(--green-soft); }
+.status-partially-paid, .status-overpaid, .status-processing { color: var(--amber); background: var(--amber-soft); }
+.status-archived, .status-cancelled, .status-blocked { color: var(--red); background: var(--red-soft); }
+.empty-state-block { display: grid; min-height: 150px; place-items: center; align-content: center; padding: 24px; color: var(--muted); text-align: center; }
+.empty-state-block strong { color: var(--ink); font-size: 14px; }
+.empty-state-block p { max-width: 330px; margin: 7px 0 14px; font-size: 12px; }

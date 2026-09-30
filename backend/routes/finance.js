@@ -1,0 +1,40 @@
+const express = require("express");
+const multer = require("multer");
+const { authorization } = require("../middlewares/authorization");
+const { handlers, uploadCheque, getCheque, deleteCheque, uploadDir } = require("../controllers/finance");
+const { paymentList, paymentGet, paymentCreate, paymentUpdate, paymentDelete, taxInvoiceList, taxInvoiceGet, convert } = require("../controllers/financial");
+const wrapAsync = require("../middlewares/wrapAsync");
+const { uploadLimiter } = require("../middlewares/rateLimiters");
+const isTestMode = process.env.TEST_MODE === "true";
+
+const router = express.Router();
+const { randomUUID } = require("crypto");
+const path = require("path");
+const storage = isTestMode ? multer.diskStorage({ destination: (_req, _file, cb) => cb(null, uploadDir), filename: (_req, file, cb) => cb(null, `${randomUUID()}${path.extname(file.originalname).toLowerCase()}`) }) : multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: isTestMode ? 5 * 1024 * 1024 : 4 * 1024 * 1024 }, fileFilter: (_req, file, cb) => { const extension = path.extname(file.originalname).toLowerCase(); const allowed = (file.mimetype === "image/jpeg" && [".jpg", ".jpeg"].includes(extension)) || (file.mimetype === "image/png" && extension === ".png") || (file.mimetype === "image/webp" && extension === ".webp"); cb(null, allowed); } });
+
+const register = (path, type) => {
+	const { list, get, create, update, remove } = handlers(type);
+	router.get(path, authorization, wrapAsync(list));
+	router.get(`${path}/:id`, authorization, wrapAsync(get));
+	router.post(path, authorization, wrapAsync(create));
+	router.put(`${path}/:id`, authorization, wrapAsync(update));
+	router.delete(`${path}/:id`, authorization, wrapAsync(remove));
+};
+register("/events", "events");
+register("/legacy-events", "events");
+register("/proforma", "proforma");
+register("/payouts", "payouts");
+register("/work", "work");
+router.post("/payouts/:id/cheque", authorization, uploadLimiter, upload.single("chequePhoto"), wrapAsync(uploadCheque));
+router.get("/payouts/:id/cheque", authorization, wrapAsync(getCheque));
+router.delete("/payouts/:id/cheque", authorization, wrapAsync(deleteCheque));
+router.get("/payments", authorization, wrapAsync(paymentList));
+router.post("/payments", authorization, wrapAsync(paymentCreate));
+router.get("/payments/:id", authorization, wrapAsync(paymentGet));
+router.put("/payments/:id", authorization, wrapAsync(paymentUpdate));
+router.delete("/payments/:id", authorization, wrapAsync(paymentDelete));
+router.get("/tax-invoices", authorization, wrapAsync(taxInvoiceList));
+router.get("/tax-invoices/:id", authorization, wrapAsync(taxInvoiceGet));
+router.post("/proforma/:id/convert", authorization, wrapAsync(convert));
+module.exports = router;

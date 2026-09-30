@@ -1,0 +1,143 @@
+.dashboard-container {
+	display: flex;
+	flex-direction: column;
+	overflow-x: auto;
+	height: 100vh;
+	padding-left: 16px;
+	gap: 16px;
+	margin-left: 248px;
+	width: calc(100% - 248px);
+	min-width: 0;
+}
+.navbar-collapsed ~ .dashboard-container { margin-left: 76px; width: calc(100% - 76px); }
+
+.dashboard-header {
+	padding-right: 16px;
+}
+
+.dashboard-header div h2,
+.dashboard-header div h3,
+.dashboard-header div h4 {
+	font-weight: 600 !important;
+}
+
+.dashboard-header > .header-user {
+	margin: 20px 0px;
+}
+
+.dashboard-container > div:not(.dashboard-header) .form_box { width: min(520px, 100%); min-height: 0; padding: 22px; align-items: stretch; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.dashboard-container > div:not(.dashboard-header) .input_p_box { width: 100%; }
+.dashboard-container > div:not(.dashboard-header) .form_box input { height: 42px; border-color: var(--line); border-radius: 7px; font-size: 13px; }
+.dashboard-container > div:not(.dashboard-header) .form_box .update_button { width: 100%; margin: 5px 0 0; border-radius: 7px; background: var(--blue); }
+
+.dashboard-header div h4 {
+	opacity: 0.7;
+}
+
+.dashboard-header > div {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.header-board > div {
+	display: flex;
+	justify-content: start;
+	align-items: center;
+	gap: 10px;
+}
+.add-people {
+	cursor: pointer;
+	margin-left: 10px;
+	font-size: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: start;
+	gap: 4px;
+	opacity: 0.7;
+}
+
+.dashboard-header .header-time span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	font-size: 15px;
+	cursor: pointer;
+}
+
+.dashboard-column {
+	display: flex;
+	overflow-x: auto;
+	height: 100vh;
+	padding-bottom: 16px;
+	width: 100%;
+}
+
+.column {
+	min-width: 350px;
+	background-color: #f5f5f5;
+	border-radius: 8px;
+	box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+	overflow-y: hidden;
+	height: 100%;
+	background: #eef2f5;
+	margin-right: 16px;
+}
+
+.column > h4 {
+	padding: 16px;
+	height: fit-content;
+	font-weight: 500;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.column > h4 > span {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+}
+
+/* Scrollbar Style */
+.dashboard-column::-webkit-scrollbar {
+	height: 8px;
+}
+
+.dashboard-column::-webkit-scrollbar-thumb {
+	background: #8daab9cc;
+	cursor: grab;
+	border-radius: 4px;
+}
+
+.dashboard-column::-webkit-scrollbar-thumb:active {
+	cursor: grabbing;
+}
+
+.dashboard-column::-webkit-scrollbar-track {
+	background: #d6eaf4;
+}
+
+.column > div::-webkit-scrollbar {
+	width: 8px;
+}
+
+.column > div::-webkit-scrollbar-thumb {
+	background: #8daab9cc;
+	cursor: grab;
+	border-radius: 4px;
+}
+
+.column > div::-webkit-scrollbar-thumb:active {
+	cursor: grabbing;
+}
+
+.column > div::-webkit-scrollbar-track {
+	background: #d6eaf4;
+}
+
+@media (max-width: 800px) {
+	.dashboard-container, .navbar-collapsed ~ .dashboard-container { margin-left: 0; width: 100%; min-width: 0; padding-top: 72px; }
+}
