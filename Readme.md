@@ -1,5 +1,5 @@
-# **Task Management Application**
 
+<<<<<<< HEAD
 This is a Task Management Application built with a MERN stack. The front end is developed using React with Vite, and the back-end is built using Express.js with MongoDB for the database.
 
 ---
@@ -228,3 +228,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 Thank you for checking out my Task Management project! If you have any feedback or suggestions, I would love to hear from you.
 Feel free to contribute, report issues, or suggest improvements! 😊
+=======
+>>>>>>> 6db51d16cda1886fc0a24e73ef8bdda1c4e11858
