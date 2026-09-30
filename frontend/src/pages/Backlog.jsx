@@ -1,9 +1,10 @@
-import { TbDots } from "react-icons/tb";
+import PropTypes from "prop-types";
 import TaskBox from "../components/TaskBox";
 import { useSelector } from "react-redux";
 
-const Backlog = ({ backlogCollapse }) => {
-	const backlog = useSelector((store) => store.task.backlog);
+const Backlog = ({ backlogCollapse, tasks }) => {
+	const storedBacklog = useSelector((store) => store.task.backlog);
+	const backlog = tasks ?? storedBacklog;
 	return (
 		<div className="task-container">
 			{backlog?.map((task, index) => (
@@ -16,5 +17,7 @@ const Backlog = ({ backlogCollapse }) => {
 		</div>
 	);
 };
+
+Backlog.propTypes = { backlogCollapse: PropTypes.bool, tasks: PropTypes.array };
 
 export default Backlog;

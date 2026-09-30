@@ -1,4 +1,3 @@
-import React from "react";
 import "../css/Page_Not_Found.css";
 import { Link } from "react-router-dom";
 const PageNotFound = () => {

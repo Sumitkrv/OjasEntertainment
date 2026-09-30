@@ -1,8 +1,10 @@
 import { useSelector } from "react-redux";
+import PropTypes from "prop-types";
 import TaskBox from "../components/TaskBox";
 
-const Done = ({ doneCollapse }) => {
-	const done = useSelector((store) => store.task.done);
+const Done = ({ doneCollapse, tasks }) => {
+	const storedDone = useSelector((store) => store.task.done);
+	const done = tasks ?? storedDone;
 	return (
 		<div className="task-container">
 			{done?.map((task, index) => (
@@ -11,5 +13,7 @@ const Done = ({ doneCollapse }) => {
 		</div>
 	);
 };
+
+Done.propTypes = { doneCollapse: PropTypes.bool, tasks: PropTypes.array };
 
 export default Done;

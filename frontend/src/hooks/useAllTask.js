@@ -1,6 +1,6 @@
+import { useCallback, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import getHeader from "../utils/header";
-import { useEffect } from "react";
 import {
 	setBacklog,
 	setTodo,
@@ -13,7 +13,7 @@ import apiRequest from "../utils/api";
 
 const useAllTask = () => {
 	const dispatch = useDispatch();
-	const fetchData = () => {
+	const fetchData = useCallback(() => {
 		dispatch(setLoading(true));
 		apiRequest("/api/task/all", {
 			method: "GET",
@@ -33,11 +33,11 @@ const useAllTask = () => {
 				toast.error("Something went wrong");
 				dispatch(setLoading(false));
 			});
-	};
+	}, [dispatch]);
 
 	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [fetchData]);
 };
 
 export default useAllTask;

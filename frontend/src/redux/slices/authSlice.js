@@ -7,7 +7,7 @@ const authSlice = createSlice({
 		addAuth: (state, action) => {
 			return action.payload;
 		},
-		removeAuth: (state) => {
+		removeAuth: () => {
 			return null;
 		},
 	},

@@ -150,14 +150,9 @@ _A task management app, where users can organize their personal and team-based t
 
 For local development without MongoDB, set `TEST_MODE=true`. Test data is stored
 in `backend/data/test-data.json` and persists across backend restarts. The file
-is ignored by git. A default local account is seeded automatically:
-
-```text
-Email: test@example.com
-Password: password123
-```
-
-These credentials are available only in TEST_MODE.
+is ignored by git. Register a local account through the application, or create
+the isolated demo dataset with `cd backend && npm run seed:test`. Demo login and
+reset instructions are documented in `TESTING.md`.
 4. Start the server in development mode:
     ```bash
     npm run dev

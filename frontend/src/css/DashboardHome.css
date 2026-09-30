@@ -1,4 +1,4 @@
-.operations-dashboard { min-height: 100vh; margin-left: 248px; padding: 28px 32px 36px; background: var(--canvas); transition: margin-left .2s ease; }
+.operations-dashboard { min-height: 100vh; margin-left: 265px; padding: 28px 32px 36px; background: var(--canvas); transition: margin-left .2s ease; }
 .navbar-collapsed ~ .operations-dashboard { margin-left: 76px; }
 .operations-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
 .operations-header h1 { margin: 0; color: var(--ink); font-size: 28px; letter-spacing: -.04em; }

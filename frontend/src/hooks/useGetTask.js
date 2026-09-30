@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import apiRequest from "../utils/api";
 const useGetTask = (id, setTask) => {
-	const getTask = () => {
+	const getTask = useCallback(() => {
 		apiRequest(`/api/task/${id}`, {
 			method: "GET",
 			headers: { "Content-Type": "application/json" },
@@ -19,10 +19,10 @@ const useGetTask = (id, setTask) => {
 				console.error("Error:", error);
 				toast.error("Something went wrong");
 			});
-	};
+	}, [id, setTask]);
 	useEffect(() => {
 		getTask();
-	}, []);
+	}, [getTask]);
 };
 
 export default useGetTask;

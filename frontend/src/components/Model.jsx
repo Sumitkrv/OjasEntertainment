@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useState } from "react";
 import "../css/Model.css";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -13,21 +13,22 @@ import {
 	setUpdateCategoryM,
 } from "../redux/slices/stateSlice";
 import { AiFillDelete, AiOutlinePlus } from "react-icons/ai";
+import { FiCalendar, FiChevronDown, FiX } from "react-icons/fi";
 import brandLogo from "../assets/ojas-entertainment-logo.png";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { removeAuth } from "../redux/slices/authSlice";
-import useAddTask from "../hooks/useAddTask";
+import addTask from "../hooks/useAddTask";
 import { toast } from "react-toastify";
-import useDeleteTask from "../hooks/useDeleteTask";
+import deleteTask from "../hooks/useDeleteTask";
 import useGetTask from "../hooks/useGetTask";
 import Loading from "./Loading";
 import { getMonthDate, simpleDate } from "../utils/generateDate";
-import useUpdateTask from "../hooks/useUpdateTask";
+import updateTask from "../hooks/useUpdateTask";
 import CheckBoxUnselect from "../assets/checkbox_unselect.png";
 import CheckBoxSelect from "../assets/checkbox_select.png";
-import useAddToBoard from "../hooks/useAddToBoard";
+import addToBoard from "../hooks/useAddToBoard";
 import { checkValidEmail } from "../utils/validate";
-import useUpdateCategory from "../hooks/useUpdateCategory";
+import updateCategory from "../hooks/useUpdateCategory";
 
 export const AddPeople = () => {
 	const dispatch = useDispatch();
@@ -39,7 +40,7 @@ export const AddPeople = () => {
 			toast.error(validError);
 			return;
 		}
-		useAddToBoard(e, setLoad, dispatch, email);
+		addToBoard(e, setLoad, dispatch, email);
 	};
 	return (
 		<div className="model-container">
@@ -101,7 +102,7 @@ export const UpdateCategory = () => {
 	);
 	const taskId = useSelector((store) => store.state.taskMId);
 	const handleUpdateCategory = (e) => {
-		useUpdateCategory(
+		updateCategory(
 			e,
 			setLoad,
 			dispatch,
@@ -175,7 +176,7 @@ export const TaskDelete = () => {
 	const id = useSelector((store) => store.state.taskMId);
 	const [load, setLoad] = useState("");
 	const handleTaskDelete = (e) => {
-		useDeleteTask(e, setLoad, dispatch, id);
+		deleteTask(e, setLoad, dispatch, id);
 	};
 
 	return (
@@ -223,7 +224,7 @@ export const TaskCard = () => {
 			});
 			if (listName.length == 0) {
 				if (task == "") {
-					useAddTask(
+					addTask(
 						e,
 						setLoad,
 						title,
@@ -234,7 +235,7 @@ export const TaskCard = () => {
 						dispatch
 					);
 				} else {
-					useUpdateTask(
+					updateTask(
 						e,
 						setLoad,
 						title,
@@ -274,286 +275,63 @@ export const TaskCard = () => {
 		setTitle(name);
 	};
 	return (
-		<div className="model-container">
-			<form
-				className="model-box model-card"
-				onSubmit={(e) => {
-					e.preventDefault();
-					handleAddTask(e);
-				}}
-			>
-				<div className="model-card-details">
-					<span>
-						Title <span className="require">*</span>
-					</span>
-					<input
-						type="text"
-						name="title"
-						value={title}
-						placeholder="Enter Task Title"
-						className="model-input"
-						onChange={(e) => handleTitle(e.target.value)}
-					/>
-					<div className="priority-box">
-						<span>
-							Select Priority <span className="require">*</span>
-						</span>
-						<div>
-							<input
-								type="radio"
-								name="priority"
-								value={priority}
-								onClick={() => setPriority("High Priority")}
-								id="high"
-							/>
-							<label
-								htmlFor="high"
-								className={`${
-									priority == "High Priority" &&
-									"selected-priority"
-								}`}
-							>
-								<div
-									className="priority-circel"
-									style={{ background: "red" }}
-								></div>
-								<span>High Priority</span>
-							</label>
-							<input
-								type="radio"
-								name="priority"
-								value={priority}
-								onClick={() => setPriority("Moderate Priority")}
-								id="moderate"
-							/>
-							<label
-								htmlFor="moderate"
-								className={`${
-									priority == "Moderate Priority" &&
-									"selected-priority"
-								}`}
-							>
-								<div
-									className="priority-circel"
-									style={{ background: "#18B0FF" }}
-								></div>
-								<span>Moderate Priority</span>
-							</label>
-							<input
-								type="radio"
-								name="priority"
-								value={priority}
-								onClick={() => setPriority("Low Priority")}
-								id="low"
-							/>
-							<label
-								htmlFor="low"
-								className={`${
-									priority == "Low Priority" &&
-									"selected-priority"
-								}`}
-							>
-								<div
-									className="priority-circel"
-									style={{ background: "#63C05B" }}
-								></div>
-								<span>Low Priority</span>
-							</label>
-						</div>
+		<div className="model-container model-task-modal-overlay">
+			<form className="model-box model-card model-task-dialog" onSubmit={(e) => { e.preventDefault(); handleAddTask(e); }}>
+				<header className="task-dialog-header">
+					<h2>{task == "" ? "Add Task" : "Edit Task"}</h2>
+					<button type="button" className="task-modal-close" aria-label="Close task dialog" onClick={() => { dispatch(setTaskCardM(false)); dispatch(setTaskM("")); }}><FiX /></button>
+				</header>
+				<div className="task-dialog-body">
+					<div className="task-form-field">
+						<label htmlFor="task-title-input">Title <span className="require">*</span></label>
+						<input id="task-title-input" type="text" name="title" value={title} placeholder="Enter task title..." className="task-modal-input" onChange={(e) => handleTitle(e.target.value)} />
 					</div>
+					<fieldset className="task-priority-field">
+						<legend>Priority <span className="require">*</span></legend>
+						<div className="task-priority-options">
+							{[["High Priority", "high", "#ef4444"], ["Moderate Priority", "moderate", "#2563eb"], ["Low Priority", "low", "#22a06b"]].map(([label, id, color]) => <label key={id} htmlFor={`task-priority-${id}`} className={`task-priority-option ${priority === label ? "is-selected" : ""}`}>
+								<input type="radio" name="priority" id={`task-priority-${id}`} value={label} checked={priority === label} onChange={() => setPriority(label)} />
+								<span className="task-priority-dot" style={{ "--priority-color": color }} />
+								<span>{label}</span>
+							</label>)}
+						</div>
+					</fieldset>
 					{auth?.board?.length != 0 && (
-						<div className="model-assign">
-							<span>Assign to</span>
+						<div className="model-assign task-assign-field">
+							<label className="task-form-label">Assign to</label>
 							<div className="assign-model-box">
-								<div
-									className="model-input model-assign-input"
-									onClick={() => setAssignBox(true)}
-								>
-									{assign ? (
-										assign
-									) : (
-										<div className="assign-unselect-color">
-											Add a assignee
-										</div>
-									)}
-								</div>
-								<div
-									className={`assign-selection-box ${
-										assignBox &&
-										"assign-selection-box-exist"
-									}`}
-								>
-									<div>
-										<div>Don't assign to any email</div>
-										<button
-											type="button"
-											onClick={() => {
-												setAssign("");
-												setAssignBox(false);
-											}}
-										>
-											Cancel
-										</button>
-									</div>
-									{assign && (
-										<div>
-											<div>
-												Don't change to assign email
-											</div>
-											<button
-												type="button"
-												onClick={() => {
-													setAssignBox(false);
-												}}
-											>
-												Back &nbsp;
-											</button>
-										</div>
-									)}
-									{auth?.board?.map((item, idx) => {
-										return (
-											<div key={idx + "assign-box"}>
-												<div title={item}>
-													<span className="assign-circel">
-														{item
-															.split("")[0]
-															.toUpperCase()}
-													</span>{" "}
-													{item}
-												</div>
-												<button
-													type="button"
-													onClick={() => {
-														setAssign(item);
-														setAssignBox(false);
-													}}
-												>
-													Assign
-												</button>
-											</div>
-										);
-									})}
+								<button type="button" className="model-input model-assign-input" onClick={() => setAssignBox(!assignBox)}>{assign || <span className="assign-unselect-color">Add an assignee</span>}<FiChevronDown /></button>
+								<div className={`assign-selection-box ${assignBox ? "assign-selection-box-exist" : ""}`}>
+									<div><div>Don&apos;t assign to any email</div><button type="button" onClick={() => { setAssign(""); setAssignBox(false); }}>Clear</button></div>
+									{assign && <div><div>Keep current assignee</div><button type="button" onClick={() => setAssignBox(false)}>Back</button></div>}
+									{auth?.board?.map((item, idx) => <div key={idx + "assign-box"}><div title={item}><span className="assign-circel">{item.split("")[0].toUpperCase()}</span>{item}</div><button type="button" onClick={() => { setAssign(item); setAssignBox(false); }}>Assign</button></div>)}
 								</div>
 							</div>
 						</div>
 					)}
-					<span className="checklist-head">
-						Checklist (
-						{checklist.filter((item) => item.isDone == true).length}
-						/{listBox}) <span className="require">*</span>
-					</span>
-					<div className="checklist-box">
-						{checklist?.map((el, idx) => {
-							return (
-								<div
-									className="checklist-input-box"
-									key={idx + "checklist-box"}
-								>
-									<span
-										className="checklist-btn checklist-btn-l"
-										onClick={() =>
-											setChecklist(
-												checklist.map((item, i) =>
-													i === idx
-														? {
-																...item,
-																isDone: !el.isDone,
-														  }
-														: item
-												)
-											)
-										}
-									>
-										{!el.isDone ? (
-											<img
-												src={CheckBoxUnselect}
-												alt="⬜"
-												className="model-checkbox"
-											/>
-										) : (
-											<img
-												src={CheckBoxSelect}
-												alt="✅"
-												className="model-checkbox"
-											/>
-										)}
-									</span>
-									<input
-										className="model-input model-input-btn"
-										type="text"
-										name={`item-${idx + 1}`}
-										placeholder="Add a task"
-										value={el.name}
-										onChange={(e) =>
-											setChecklist(
-												checklist.map((item, i) =>
-													i === idx
-														? {
-																...item,
-																name: e.target
-																	.value,
-														  }
-														: item
-												)
-											)
-										}
-									/>
-									<span
-										className="checklist-btn checklist-btn-r"
-										onClick={() =>
-											handleDeleteChecklist(idx)
-										}
-									>
-										<AiFillDelete cursor={"pointer"} />
-									</span>
-								</div>
-							);
-						})}
+					<section className="task-checklist-field">
+						<h3>Checklist ({checklist.filter((item) => item.isDone === true).length}/{listBox}) <span className="require">*</span></h3>
+						<div className="checklist-box task-modal-checklist">
+							{checklist.map((el, idx) => <div className="checklist-input-box task-modal-checklist-row" key={idx + "checklist-box"}>
+								<label className="task-check-control" aria-label={el.isDone ? "Mark checklist item incomplete" : "Mark checklist item complete"}><input type="checkbox" checked={el.isDone} onChange={() => setChecklist(checklist.map((item, i) => i === idx ? { ...item, isDone: !el.isDone } : item))} /><span>{el.isDone ? <img src={CheckBoxSelect} alt="" className="model-checkbox" /> : <img src={CheckBoxUnselect} alt="" className="model-checkbox" />}</span></label>
+								<input className="model-input model-input-btn task-checklist-input" type="text" name={`item-${idx + 1}`} placeholder="Enter checklist item..." value={el.name} onChange={(e) => setChecklist(checklist.map((item, i) => i === idx ? { ...item, name: e.target.value } : item))} />
+								<button className="task-checklist-delete" type="button" aria-label={`Remove checklist item ${idx + 1}`} onClick={() => handleDeleteChecklist(idx)}><AiFillDelete /></button>
+							</div>)}
+						</div>
+					<button type="button" className="checklist-add task-checklist-add" onClick={handleAddChecklist}><AiOutlinePlus /><span>Add New</span></button>
+					</section>
+					<div className="task-form-field task-due-field">
+						<label>Due Date</label>
+						<div className="task-date-picker-wrap">
+							<button type="button" className="task-date-picker-trigger" aria-label={dueDate ? `Due date ${simpleDate(dueDate)}` : "Select due date"} onClick={() => { const input = document.getElementById("model-card-date"); if (input?.showPicker) input.showPicker(); else input?.click(); }}><FiCalendar /><span className={dueDate ? "" : "is-placeholder"}>{dueDate ? simpleDate(dueDate) : "Select due date"}</span><FiChevronDown /></button>
+							<input type="date" name="due-date" id="model-card-date" value={dueDate.split("T")[0]} onChange={(e) => setDueDate(e.target?.value)} />
+						</div>
 					</div>
-					<span
-						className="checklist-add"
-						onClick={handleAddChecklist}
-					>
-						<AiOutlinePlus fontSize={16} />
-						<span>Add New</span>
-					</span>
 				</div>
-				<div className="model-btns">
-					<label
-						htmlFor="model-card-date"
-						onClick={(e) =>
-							document
-								?.getElementById("model-card-date")
-								?.showPicker()
-						}
-					>
-						<button className="model-due-date" type="button">
-							{dueDate ? simpleDate(dueDate) : "Select Due Date"}
-						</button>
-					</label>
-					<input
-						type="date"
-						name="due-date"
-						id="model-card-date"
-						value={dueDate.split("T")[0]}
-						onChange={(e) => {
-							setDueDate(e.target?.value);
-						}}
-					/>
-					<button
-						type="button"
-						className="model-cancel"
-						onClick={() => {
-							dispatch(setTaskCardM(false));
-							dispatch(setTaskM(""));
-						}}
-					>
-						Cancel
-					</button>
-					<button className="model-submit" type="submit">
-						{load == "" ? "Save" : load}
-					</button>
-				</div>
+				<footer className="model-btns task-dialog-footer">
+					<button type="button" className="model-cancel" onClick={() => { dispatch(setTaskCardM(false)); dispatch(setTaskM("")); }}>Cancel</button>
+					<button className="model-submit" type="submit">{load == "" ? "Save" : load}</button>
+				</footer>
 			</form>
 		</div>
 	);

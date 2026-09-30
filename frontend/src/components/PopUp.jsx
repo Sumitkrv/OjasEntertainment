@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 import "../css/PopUp.css";
 import { useDispatch } from "react-redux";
 import {
@@ -9,7 +9,7 @@ import {
 	setTaskM,
 } from "../redux/slices/stateSlice";
 import { toast } from "react-toastify";
-import useAllTaskFilter from "../hooks/useAllTaskFilter";
+import filterAllTasks from "../hooks/useAllTaskFilter";
 
 export const TaskMenu = ({ setTaskMenuP, id, task }) => {
 	const dispatch = useDispatch();
@@ -48,11 +48,16 @@ export const TaskMenu = ({ setTaskMenuP, id, task }) => {
 		</div>
 	);
 };
+TaskMenu.propTypes = {
+	setTaskMenuP: PropTypes.func.isRequired,
+	id: PropTypes.string.isRequired,
+	task: PropTypes.object.isRequired,
+};
 export const TaskFilter = () => {
 	const dispatch = useDispatch();
 	const handleFilter = (days) => {
 		dispatch(setTaskFilterP(false));
-		useAllTaskFilter(dispatch, days);
+		filterAllTasks(dispatch, days);
 	};
 
 	return (

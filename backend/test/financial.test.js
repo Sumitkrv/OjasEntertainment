@@ -10,6 +10,7 @@ const { buildAnalyticsSnapshot } = require("../controllers/analytics");
 const { summary: dashboardSummary } = require("../controllers/dashboard");
 const { convert } = require("../controllers/financial");
 const { findRecords } = require("../config/testStore");
+const testStore = require("../config/testStore");
 const eventRouter = require("../controllers/events");
 
 initializeTestStore();
@@ -37,6 +38,13 @@ test("calculates GST, TDS, and valid payment states consistently", () => {
 			[0, 3000, "OVERPAID"],
 		]
 	);
+});
+
+test("uses a legacy GST total when saved component defaults are all zero", () => {
+	const result = calculateInvoice({ taxableValue: 1000, cgst: 0, sgst: 0, igst: 0, gst: 180, tdsRate: 1 });
+	assert.equal(result.gstAmount, 180);
+	assert.equal(result.grossInvoiceValue, 1180);
+	assert.equal(calculateInvoice(result).grossInvoiceValue, 1180);
 });
 
 test("flat ₹100,000 payable reconciles unpaid, partial, paid, and overpaid states", () => {
@@ -68,10 +76,10 @@ test("payment aggregation ignores cancelled records and avoids client totals", (
 	assert.equal(result.outstandingAmount, 47000);
 });
 
-test("integrity checker reports the existing invalid seeded PI without changing it", async () => {
+test("integrity checker accepts the financially repaired local test records", async () => {
 	const report = await checkFinancialIntegrity("test-user-6f5f5fb7-7f32-4444-99fc-50d8f3c126b5");
-	assert.equal(report.valid, false);
-	assert.ok(report.issues.some((issue) => issue.field === "financialData"));
+	assert.equal(report.valid, true);
+	assert.deepEqual(report.issues, []);
 });
 
 test("conversion rejects an already converted PI without creating a duplicate invoice", async () => {
@@ -83,6 +91,28 @@ test("conversion rejects an already converted PI without creating a duplicate in
 	assert.equal(responseStatus, 409);
 	assert.match(responseBody.message, /already been converted/i);
 	assert.equal(findRecords("taxInvoices").length, before);
+});
+
+test("conversion writes matching two-way PI and Tax Invoice relationships", async () => {
+	const piId = `conversion-regression-${Date.now()}`;
+	const userId = "conversion-regression-user";
+	testStore.addRecord("proforma", { _id: piId, userId, data: { company: "Demo Company", partyName: "Demo Client", piNumber: `${piId}-PI`, piDate: "2026-09-30", taxableValue: 1000, cgst: 90, sgst: 90, igst: 0, tdsRate: 1 } });
+	const response = { statusCode: 200, body: null, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
+	try {
+		await convert({ user: { _id: userId }, params: { id: piId }, body: { invoiceNumber: `${piId}-TI`, invoiceDate: "2026-09-30" } }, response);
+		assert.equal(response.statusCode, 201);
+		const updatedPi = testStore.findRecordById("proforma", piId);
+		const taxInvoice = testStore.findRecords("taxInvoices").find((record) => record.data.proformaInvoiceId === piId);
+		assert.equal(updatedPi.data.taxInvoiceId, taxInvoice._id);
+		assert.equal(taxInvoice.data.proformaInvoiceId, piId);
+		assert.equal(taxInvoice.data.eventId || null, updatedPi.data.eventId || null);
+	} finally {
+		for (const type of ["proforma", "taxInvoices", "activities"]) {
+			for (const record of testStore.findRecords(type)) {
+				if (record._id === piId || record.data?.proformaInvoiceId === piId || record.data?.entityId === piId) testStore.deleteRecord(type, record._id);
+			}
+		}
+	}
 });
 
 test("conversion returns not found for an unknown PI", async () => {

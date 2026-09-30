@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const file = path.join(__dirname, "..", "data", "test-data.json");
+const file = process.env.TEST_DATA_FILE || path.join(__dirname, "..", "data", "test-data.json");
 const db = JSON.parse(fs.readFileSync(file, "utf8"));
 const invoices = db.taxInvoices || [];
 const events = new Map((db.events || []).map((row) => [String(row._id), row]));

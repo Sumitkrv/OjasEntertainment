@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const file = path.join(__dirname, "..", "data", "test-data.json");
+const file = process.env.TEST_DATA_FILE || path.join(__dirname, "..", "data", "test-data.json");
 const db = JSON.parse(fs.readFileSync(file, "utf8"));
 const keyed = (type) => new Map((db[type] || []).map((record) => [String(record._id), record]));
 const events = keyed("events");
@@ -22,11 +22,14 @@ for (const type of collections) {
 for (const type of ["proforma", "taxInvoices", "payments", "payouts", "documents"]) {
 	for (const item of db[type] || []) {
 		const d = item.data || {};
-		for (const [field, targetType] of [["proformaInvoiceId", "proforma"], ["taxInvoiceId", "taxInvoices"], ["relatedEntityId", ({ PROFORMA: "proforma", TAX_INVOICE: "taxInvoices", PAYMENT: "payments", PAYOUT: "payouts", WORK: "work" })[d.relatedEntityType]]]) {
+		for (const [field, targetType] of [["proformaInvoiceId", "proforma"], ["taxInvoiceId", "taxInvoices"], ["relatedEntityId", ({ EVENT: "events", PROFORMA: "proforma", TAX_INVOICE: "taxInvoices", PAYMENT: "payments", PAYOUT: "payouts", WORK: "work" })[d.relatedEntityType]]]) {
 			if (!d[field]) continue;
 			const target = keyed(targetType || "").get(String(d[field]));
 			if (!target || String(target.userId) !== String(item.userId)) report({ ...item, type }, `References a missing ${targetType || "related record"}`);
-			else if ((d.eventId || target.data?.eventId) && String(d.eventId || "") !== String(target.data?.eventId || "")) report({ ...item, type }, `${field} belongs to a different Event`);
+			else {
+				const targetEventId = targetType === "events" ? target._id : target.data?.eventId;
+				if ((d.eventId || targetEventId) && String(d.eventId || "") !== String(targetEventId || "")) report({ ...item, type }, `${field} belongs to a different Event`);
+			}
 		}
 	}
 }

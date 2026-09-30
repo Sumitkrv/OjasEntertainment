@@ -5,7 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const mongoose = require("mongoose");
 const { randomUUID } = require("crypto");
-const { initializeTestStore, seedDefaultTestUser } = require("./config/testStore");
+const { initializeTestStore } = require("./config/testStore");
 const { authLimiter, analyticsLimiter } = require("./middlewares/rateLimiters");
 
 const app = express();
@@ -81,7 +81,6 @@ async function main() {
 	validateEnvironment();
 	if (isTestMode) {
 		initializeTestStore();
-		seedDefaultTestUser();
 	} else {
 		await ensureDatabaseConnection();
 	}

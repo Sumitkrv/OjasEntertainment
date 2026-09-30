@@ -1,17 +1,16 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import getHeader from "../utils/header";
 import apiRequest from "../utils/api";
 
 const useGetAnalytics = (setAnalytics, filters = {}) => {
-	const query = new URLSearchParams();
-	if (filters.range) query.set("range", filters.range);
-	if (filters.from) query.set("from", filters.from);
-	if (filters.to) query.set("to", filters.to);
-	if (filters.company) query.set("company", filters.company);
-	if (filters.status) query.set("status", filters.status);
-
-	const getAnalytics = () => {
+	const getAnalytics = useCallback(() => {
+		const query = new URLSearchParams();
+		if (filters.range) query.set("range", filters.range);
+		if (filters.from) query.set("from", filters.from);
+		if (filters.to) query.set("to", filters.to);
+		if (filters.company) query.set("company", filters.company);
+		if (filters.status) query.set("status", filters.status);
 		const suffix = query.toString() ? `?${query.toString()}` : "";
 		apiRequest(`/api/analytics${suffix}`, {
 			method: "GET",
@@ -28,11 +27,11 @@ const useGetAnalytics = (setAnalytics, filters = {}) => {
 				console.error("Error:", error);
 				toast.error("Something went wrong");
 			});
-	};
+	}, [filters.range, filters.from, filters.to, filters.company, filters.status, setAnalytics]);
 
 	useEffect(() => {
 		getAnalytics();
-	}, [filters.range, filters.from, filters.to, filters.company, filters.status]);
+	}, [getAnalytics]);
 };
 
 export default useGetAnalytics;

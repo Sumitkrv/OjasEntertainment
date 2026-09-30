@@ -24,7 +24,10 @@ const assertConsistent = (data, field, expected) => {
 const calculateInvoice = (input, { received = input.amountReceived, validateDerived = true } = {}) => {
 	const data = { ...input };
 	const taxableValue = toMoney(data.taxableValue, "taxableValue", { required: true });
-	const hasTaxComponents = data.cgst !== undefined || data.sgst !== undefined || data.igst !== undefined;
+	const componentsPresent = data.cgst !== undefined || data.sgst !== undefined || data.igst !== undefined;
+	const componentsSum = toMoney(data.cgst, "cgst") + toMoney(data.sgst, "sgst") + toMoney(data.igst, "igst");
+	// Legacy records may carry zero-valued component defaults alongside their authoritative GST total.
+	const hasTaxComponents = componentsPresent && !(componentsSum === 0 && Number(data.gst) > 0);
 	const legacyGst = !hasTaxComponents && data.gst !== undefined ? toMoney(data.gst, "gst") : 0;
 	const cgst = toMoney(data.cgst, "cgst");
 	const sgst = toMoney(data.sgst, "sgst");

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
+import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FiBarChart2, FiBell, FiBriefcase, FiCalendar, FiCheckCircle, FiChevronDown, FiClock, FiCreditCard, FiDownload, FiFileText, FiFilter, FiPercent, FiPlay, FiSearch, FiTrendingUp } from "react-icons/fi";
 import "../css/Analytics.css";
 import Loading from "../components/Loading";
+import { apiUrl } from "../utils/api";
+import EmptyState from "../components/EmptyState";
 import apiRequest from "../utils/api";
 import getHeader from "../utils/header";
 
@@ -12,7 +18,6 @@ const RANGE_OPTIONS = [
 	{ value: "last-month", label: "Last Month" },
 	{ value: "this-quarter", label: "This Quarter" },
 	{ value: "this-year", label: "This Year" },
-	{ value: "year-to-date", label: "Year to Date" },
 ];
 
 const TABS = ["overview", "events", "finance", "payments", "payouts", "work", "companies"];
@@ -34,9 +39,9 @@ const getQueryString = (filters) => {
 	return params.toString();
 };
 
-const buildChartPoints = (items, width, height) => {
+const buildChartPoints = (items, width, height, sharedMax) => {
 	if (!items.length) return "";
-	const max = Math.max(...items.map((item) => item.value || 0), 1);
+	const max = sharedMax || Math.max(...items.map((item) => item.value || 0), 1);
 	return items
 		.map((item, index) => {
 			const x = items.length === 1 ? width / 2 : (index / (items.length - 1)) * width;
@@ -51,6 +56,7 @@ const StatusPill = ({ value }) => (
 		{String(value || "Pending")}
 	</span>
 );
+StatusPill.propTypes = { value: PropTypes.any };
 
 const CurrencyCard = ({ label, value, tone = "blue" }) => (
 	<div className={`metric-card metric-${tone}`}>
@@ -58,10 +64,16 @@ const CurrencyCard = ({ label, value, tone = "blue" }) => (
 		<strong>{toCurrency(value)}</strong>
 	</div>
 );
+CurrencyCard.propTypes = { label: PropTypes.string.isRequired, value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), tone: PropTypes.string };
+
+const ChartEmptyState = ({ title, description }) => (
+	<div className="empty-state-block"><div className="analytics-empty-copy"><span className="analytics-empty-icon"><FiBarChart2 /></span><strong>{title}</strong><p>{description}</p></div></div>
+);
+ChartEmptyState.propTypes = { title: PropTypes.string.isRequired, description: PropTypes.string.isRequired };
 
 const SimpleBarChart = ({ items = [], formatter = (value) => value }) => {
 	if (!items.length) {
-		return <div className="empty-state-block"><div><strong>No data for this period.</strong><p>Use a broader date range or change the company filter.</p></div></div>;
+		return <ChartEmptyState title="No data for this period." description="Use a broader date range or change the company filter." />;
 	}
 	const max = Math.max(...items.map((item) => Number(item.value || 0)), 1);
 	return (
@@ -78,38 +90,38 @@ const SimpleBarChart = ({ items = [], formatter = (value) => value }) => {
 		</div>
 	);
 };
+SimpleBarChart.propTypes = { items: PropTypes.arrayOf(PropTypes.object), formatter: PropTypes.func };
 
-const LineChart = ({ items = [], valueKey = "value", labelKey = "label" }) => {
+const LineChart = ({ items = [], valueKey = "value", secondValueKey, labelKey = "label" }) => {
 	if (!items.length) {
-		return <div className="empty-state-block"><div><strong>No trend data.</strong><p>There are no matching records for the selected period.</p></div></div>;
+		return <ChartEmptyState title="No trend data." description="There are no matching records for the selected period." />;
 	}
 	const width = 420;
 	const height = 180;
-	const points = buildChartPoints(items, width, height);
+	const values = items.map((item) => Number(item[valueKey] || 0));
+	const secondValues = secondValueKey ? items.map((item) => Number(item[secondValueKey] || 0)) : [];
+	const chartMax = Math.max(...values, ...secondValues, 1);
+	const points = buildChartPoints(values.map((value) => ({ value })), width, height, chartMax);
 	return (
 		<div className="line-chart-wrap">
 			<svg viewBox={`0 0 ${width} ${height}`} className="line-chart" preserveAspectRatio="none">
 				<polyline fill="none" stroke="#3b70e9" strokeWidth="3" points={points} />
+				{secondValueKey && <polyline fill="none" stroke="#22c55e" strokeWidth="3" points={buildChartPoints(secondValues.map((value) => ({ value })), width, height, chartMax)} />}
 				{items.map((item, index) => {
-					const max = Math.max(...items.map((entry) => Number(entry[valueKey] || 0)), 1);
 					const x = items.length === 1 ? width / 2 : (index / Math.max(items.length - 1, 1)) * width;
-					const y = height - ((Number(item[valueKey] || 0) / max) * (height - 18)) - 10;
+					const y = height - ((Number(item[valueKey] || 0) / chartMax) * (height - 18)) - 10;
 					return <circle key={`${item[labelKey]}-${index}`} cx={x} cy={y} r="4" fill="#3b70e9" />;
 				})}
 			</svg>
 			<div className="line-chart-labels">
-				{items.map((item) => (
-					<span key={`${item[labelKey]}-label`}>{item[labelKey]}</span>
-				))}
+				{items.map((item) => <span key={`${item[labelKey]}-label`}>{item[labelKey]}</span>)}
 			</div>
 		</div>
 	);
 };
+LineChart.propTypes = { items: PropTypes.arrayOf(PropTypes.object), valueKey: PropTypes.string, secondValueKey: PropTypes.string, labelKey: PropTypes.string };
 
 const Table = ({ columns, rows = [] }) => {
-	if (!rows.length) {
-		return <div className="empty-state-block"><div><strong>No data found.</strong><p>Adjust the filters to see the relevant records.</p></div></div>;
-	}
 	return (
 		<div className="analytics-table-wrap">
 			<table className="analytics-table">
@@ -121,6 +133,7 @@ const Table = ({ columns, rows = [] }) => {
 					</tr>
 				</thead>
 				<tbody>
+					{!rows.length && <tr><td className="analytics-table-empty-cell" colSpan={columns.length}><div className="analytics-table-empty"><span><FiFileText /></span><strong>No data found.</strong><small>Adjust the filters to see the relevant records.</small></div></td></tr>}
 					{rows.map((row, index) => (
 						<tr key={`${row.id || row.name || index}`}>
 							{columns.map((column) => (
@@ -133,12 +146,26 @@ const Table = ({ columns, rows = [] }) => {
 		</div>
 	);
 };
+Table.propTypes = { columns: PropTypes.arrayOf(PropTypes.object).isRequired, rows: PropTypes.arrayOf(PropTypes.object) };
 
 const Analytics = () => {
+	const auth = useSelector((store) => store.auth);
 	const [activeTab, setActiveTab] = useState("overview");
+	const [query, setQuery] = useState("");
+	const [searchResults, setSearchResults] = useState(null);
 	const [filters, setFilters] = useState({ range: "this-month", company: "", status: "", from: "", to: "" });
 	const [analytics, setAnalytics] = useState(null);
 	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (query.trim().length < 2) return setSearchResults(null);
+			apiRequest(`/api/dashboard/search?q=${encodeURIComponent(query)}`, { headers: getHeader() })
+				.then((response) => setSearchResults(response.data))
+				.catch(() => toast.error("Search unavailable"));
+		}, 250);
+		return () => clearTimeout(timer);
+	}, [query]);
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
@@ -162,7 +189,7 @@ const Analytics = () => {
 
 	useEffect(() => {
 		if (filters.range === "custom" && (!filters.from || !filters.to)) { setLoading(false); return; }
-		const queryString = getQueryString(filters);
+		const queryString = getQueryString({ range: filters.range, company: filters.company, status: filters.status, from: filters.from, to: filters.to });
 		const requestUrl = queryString ? `/api/analytics?${queryString}` : "/api/analytics";
 		setLoading(true);
 		apiRequest(requestUrl, {
@@ -190,13 +217,8 @@ const Analytics = () => {
 	}, [analytics]);
 
 	const exportCsv = (type) => {
-		const backendUrl = import.meta.env.VITE_BACKEND_URL;
-		if (!backendUrl) {
-			toast.error("Analytics export is not configured for this deployment");
-			return;
-		}
 		const params = getQueryString(filters);
-		window.open(`${backendUrl}/api/analytics/export?type=${type}&${params}`, "_blank");
+		window.open(apiUrl(`/api/analytics/export?type=${type}&${params}`), "_blank");
 	};
 
 	if (loading || analytics == null) {
@@ -214,25 +236,28 @@ const Analytics = () => {
 	const outstandingRows = snapshot.outstandingTable || [];
 
 	const overviewCards = [
-		{ label: "Total Events", value: kpis.totalEvents || 0, tone: "blue" },
-		{ label: "Upcoming Events", value: kpis.upcomingEvents || 0, tone: "green" },
-		{ label: "Active Events", value: kpis.activeEvents || 0, tone: "amber" },
-		{ label: "Completed Events", value: kpis.completedEvents || 0, tone: "blue" },
-		{ label: "Invoice Value", value: kpis.invoiceValue || 0, tone: "blue" },
-		{ label: "Received", value: kpis.received || 0, tone: "green" },
-		{ label: "Outstanding", value: kpis.outstanding || 0, tone: "amber" },
-		{ label: "TDS", value: kpis.tds || 0, tone: "red" },
-		{ label: "Payouts", value: kpis.payouts || 0, tone: "amber" },
-		{ label: "Work Logged", value: kpis.workLogged || 0, tone: "green" },
+		{ label: "Total Events", value: kpis.totalEvents || 0, subtitle: "All events", tone: "blue", Icon: FiCalendar },
+		{ label: "Upcoming Events", value: kpis.upcomingEvents || 0, subtitle: "Scheduled", tone: "amber", Icon: FiClock },
+		{ label: "Active Events", value: kpis.activeEvents || 0, subtitle: "In progress", tone: "green", Icon: FiPlay },
+		{ label: "Completed Events", value: kpis.completedEvents || 0, subtitle: "Finished", tone: "purple", Icon: FiCheckCircle },
+		{ label: "Invoice Value", value: kpis.invoiceValue || 0, subtitle: "Total value", tone: "pink", currency: true, Icon: FiFileText },
+		{ label: "Received", value: kpis.received || 0, subtitle: "Amount received", tone: "green", currency: true, Icon: FiDownload },
+		{ label: "Outstanding", value: kpis.outstanding || 0, subtitle: "Pending amount", tone: "amber", currency: true, Icon: FiClock },
+		{ label: "TDS", value: kpis.tds || 0, subtitle: "Total TDS", tone: "blue", currency: true, Icon: FiPercent },
+		{ label: "Payouts", value: kpis.payouts || 0, subtitle: "Total payouts", tone: "purple", currency: true, Icon: FiCreditCard },
+		{ label: "Work Logged", value: kpis.workLogged || 0, subtitle: "Total work items", tone: "slate", currency: true, Icon: FiBriefcase },
 	];
 
 	const renderOverview = () => (
 		<div className="analytics-section-stack">
 			<div className="kpi-grid">
 				{overviewCards.map((card) => (
-					<div key={card.label} className={`kpi-card ${card.tone}`}>
-						<span>{card.label}</span>
-						<strong>{card.label.toLowerCase().includes("value") || card.label.toLowerCase().includes("received") || card.label.toLowerCase().includes("outstanding") || card.label.toLowerCase().includes("tds") || card.label.toLowerCase().includes("payouts") || card.label.toLowerCase().includes("work") ? toCurrency(card.value) : Number(card.value).toLocaleString("en-IN")}</strong>
+					<div key={card.label} className={`kpi-card analytics-kpi-card metric-${card.tone}`}>
+						<span className={`analytics-kpi-icon icon-${card.tone}`}><card.Icon /></span>
+						<div className="analytics-kpi-copy"><span>{card.label}</span>
+						<strong>{card.currency ? toCurrency(card.value) : Number(card.value).toLocaleString("en-IN")}</strong>
+						<small>{card.subtitle}</small></div>
+						<FiTrendingUp className={`analytics-kpi-trend trend-${card.tone}`} aria-hidden="true" />
 					</div>
 				))}
 			</div>
@@ -247,7 +272,7 @@ const Analytics = () => {
 					<div className="panel-header">
 						<h3>Invoice vs Received</h3>
 					</div>
-					<LineChart items={(financeData.monthly || []).map((entry) => ({ label: entry.label, value: entry.invoiceValue }))} />
+					<LineChart items={financeData.monthly || []} valueKey="invoiceValue" secondValueKey="received" />
 				</div>
 			</div>
 			<div className="analytics-card">
@@ -256,10 +281,13 @@ const Analytics = () => {
 				</div>
 				<Table
 					columns={[
-						{ key: "eventName", label: "Event" },
-						{ key: "invoiceNumber", label: "Invoice" },
+						{ key: "invoiceNumber", label: "Invoice Number" },
+						{ key: "company", label: "Company", render: (value) => value || "—" },
+						{ key: "invoiceDate", label: "Invoice Date", render: (value) => value || "—" },
+						{ key: "invoiceValue", label: "Amount", render: (value) => toCurrency(value) },
 						{ key: "outstanding", label: "Outstanding", render: (value) => toCurrency(value) },
 						{ key: "status", label: "Status", render: (value) => <StatusPill value={value} /> },
+						{ key: "actions", label: "Actions", render: () => "—" },
 					]}
 					rows={outstandingRows.slice(0, 8).map((row) => ({ ...row, id: `${row.eventId || row.invoiceNumber}-${row.invoiceNumber}` }))}
 				/>
@@ -429,13 +457,23 @@ const Analytics = () => {
 
 	return (
 		<div className="dashboard-container analytics-page">
+			<header className="analytics-topbar">
+				<div className="analytics-global-search"><FiSearch /><input aria-label="Global search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search events, invoices, clients, payments..." /><span>⌘ K</span>
+					{searchResults && <div className="analytics-search-results">
+						{[["events", "Events"], ["proforma", "Proforma"], ["invoices", "Tax Invoices"], ["payments", "Payments"], ["payouts", "Payouts"], ["work", "Daily Work"]].flatMap(([key, label]) => (searchResults[key] || []).map((item) => <Link key={`${key}-${item._id}`} to={item.eventId ? `/events/${item.eventId}` : key === "events" ? `/events/${item._id}` : "/"}><strong>{label}</strong>{item.eventName || item.piNumber || item.invoiceNumber || item.referenceNumber || item.vendorName || item.workDescription || item._id}</Link>))}
+						{!Object.values(searchResults).some((items) => items?.length) && <EmptyState title="No results found" description="Try searching for an event, invoice, payment or payout." />}
+					</div>}
+				</div>
+				<div className="analytics-account"><span className="analytics-date"><FiCalendar />{new Date().toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}</span><button className="analytics-bell" aria-label="Notifications"><FiBell /><i /></button><span className="analytics-account-divider" /><span className="analytics-avatar">{(auth?.name || "S").slice(0, 1).toUpperCase()}</span><strong>{auth?.name || "Sumit Thakur"}</strong><FiChevronDown /></div>
+			</header>
 			<div className="dashboard-header analytics-header">
-				<div className="header-user">
-					<h3>Analytics</h3>
+				<div className="analytics-title-block">
+					<h1>Analytics</h1>
+					<p>Get a complete overview of your events, invoices, payments and business performance.</p>
 				</div>
 				<div className="analytics-actions">
 					<div className="filter-group range-selectors">
-						{RANGE_OPTIONS.map((option) => (
+						{[...RANGE_OPTIONS, ...(filters.range === "year-to-date" ? [{ value: "year-to-date", label: "Year to Date" }] : [])].map((option) => (
 							<button
 								key={option.value}
 								type="button"
@@ -465,9 +503,9 @@ const Analytics = () => {
 							</select>
 						</label>
 						<label>
-			<span>Event Status</span>
-			<select aria-label="Event Status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
-				<option value="">All Event Statuses</option>
+							<span>Status</span>
+							<select aria-label="Status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
+								<option value="">All Statuses</option>
 								<option value="UPCOMING">Upcoming</option>
 								<option value="ONGOING">Active</option>
 								<option value="COMPLETED">Completed</option>
@@ -475,12 +513,12 @@ const Analytics = () => {
 								<option value="DRAFT">Draft</option>
 							</select>
 						</label>
-		<button type="button" className="secondary-button" onClick={() => setFilters({ range: "this-month", company: "", status: "", from: "", to: "" })}>Clear Filters</button>
+						<button type="button" className="secondary-button" onClick={() => setFilters({ range: "this-month", company: "", status: "", from: "", to: "" })}><FiFilter /> Clear Filters</button>
 					</div>
 					<div className="export-actions">
-						<button type="button" className="secondary-button" onClick={() => exportCsv("events")}>Export Events</button>
-						<button type="button" className="secondary-button" onClick={() => exportCsv("invoices")}>Export Invoices</button>
-						<button type="button" className="secondary-button" onClick={() => exportCsv("payments")}>Export Payments</button>
+						<button type="button" className="secondary-button" onClick={() => exportCsv("events")}><FiDownload /> Export Events</button>
+						<button type="button" className="secondary-button" onClick={() => exportCsv("invoices")}><FiDownload /> Export Invoices</button>
+						<button type="button" className="secondary-button" onClick={() => exportCsv("payments")}><FiDownload /> Export Payments</button>
 					</div>
 				</div>
 			</div>

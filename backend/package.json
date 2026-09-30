@@ -11,6 +11,10 @@
 		"check:invoice-integrity": "node scripts/checkInvoiceIntegrity.js",
 		"check:event-integrity": "node scripts/checkEventIntegrity.js",
 		"check:data-integrity": "node scripts/checkDataIntegrity.js",
+		"seed:test": "TEST_MODE=true node scripts/testData.js seed",
+		"reset:test": "TEST_MODE=true node scripts/testData.js reset",
+		"repair:test-finance": "TEST_MODE=true node scripts/repairTestFinancialData.js",
+		"start:test-demo": "TEST_MODE=true TEST_DATA_FILE=data/demo-test-data.json node server.js",
 		"start": "node server.js",
 		"dev": "node server.js"
 	},

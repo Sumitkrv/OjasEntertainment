@@ -92,23 +92,6 @@ const calculate = (type, input, received = 0) => {
 	return data;
 };
 
-/* Legacy event rows remain supported, but new invoice calculations use the shared service above. */
-const oldCalculate = (type, input) => {
-	const data = { ...input };
-	if (type === "events") {
-		["taxableValue", "cgst", "sgst", "igst", "paymentMade"].forEach((key) => {
-			data[key] = toMoney(data[key], key);
-		});
-		data.tdsRate = Number(data.tdsRate || 0);
-		if (!TDS_RATES.has(data.tdsRate)) throw new Error("TDS rate must be 0, 1, 2, or 10");
-		data.totalInvoiceValue = data.taxableValue + data.cgst + data.sgst + data.igst;
-		data.tdsAmount = Math.round((data.taxableValue * data.tdsRate / 100 + Number.EPSILON) * 100) / 100;
-		data.netAmountPayable = data.totalInvoiceValue - data.tdsAmount;
-		data.balancePayable = Math.max(data.netAmountPayable - data.paymentMade, 0);
-	}
-	return data;
-};
-
 const validDate = (value) => !value || isValidDateValue(value);
 const owns = (record, userId) => record && record.userId === userId;
 const serialize = (record) => {

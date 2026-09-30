@@ -180,7 +180,7 @@ const convert = async (req, res) => {
 		let taxInvoice;
 		if (isTestMode) {
 			taxInvoice = { _id: createId("tax-invoice"), userId: req.user._id, data: taxData };
-			const updatedData = { ...pi.data, conversionStatus: "CONVERTED", convertedToTaxInvoice: true, taxInvoiceId: taxInvoice._id, taxInvoiceNumber: invoiceNumber, taxInvoiceDate: invoiceDate, ...invoice };
+			const updatedData = { ...pi.data, ...invoice, conversionStatus: "CONVERTED", convertedToTaxInvoice: true, taxInvoiceId: taxInvoice._id, taxInvoiceNumber: invoiceNumber, taxInvoiceDate: invoiceDate };
 			const updatedPi = { ...pi, data: updatedData };
 			const audit = { _id: createId("activity"), userId: req.user._id, data: { eventId: pi.data.eventId, action: "PI_CONVERTED", description: `Proforma ${pi.data.piNumber} converted to Tax Invoice ${invoiceNumber}`, entityType: "FINANCE", proformaInvoiceId: pi._id, taxInvoiceId: taxInvoice._id, performedBy: req.user._id, createdAt: now } };
 			commitRecordChanges([{ type: "taxInvoices", record: taxInvoice }, { type: "proforma", record: updatedPi }, { type: "activities", record: audit }]);
@@ -193,7 +193,7 @@ const convert = async (req, res) => {
 				if (duplicateNow) { const conflict = new Error("Duplicate invoice number"); conflict.status = 409; throw conflict; }
 				const created = await new FinanceRecord({ type: "taxInvoices", userId: req.user._id, data: taxData }).save({ session });
 				taxData.proformaInvoiceId = current._id.toString();
-				const updatedData = { ...current.data, conversionStatus: "CONVERTED", convertedToTaxInvoice: true, taxInvoiceId: created._id.toString(), taxInvoiceNumber: invoiceNumber, taxInvoiceDate: invoiceDate, ...invoice };
+				const updatedData = { ...current.data, ...invoice, conversionStatus: "CONVERTED", convertedToTaxInvoice: true, taxInvoiceId: created._id.toString(), taxInvoiceNumber: invoiceNumber, taxInvoiceDate: invoiceDate };
 				current.data = updatedData;
 				await current.save({ session });
 				await new FinanceRecord({ type: "activities", userId: req.user._id, data: { eventId: current.data.eventId, action: "PI_CONVERTED", description: `Proforma ${current.data.piNumber} converted to Tax Invoice ${invoiceNumber}`, proformaInvoiceId: current._id.toString(), taxInvoiceId: created._id.toString(), performedBy: req.user._id, createdAt: now } }).save({ session });

@@ -15,7 +15,7 @@ Required backend variables:
 
 The backend fails startup when production database or JWT configuration is missing, and refuses to run with `TEST_MODE=true` in production.
 
-Frontend deployment requires `VITE_BACKEND_URL` pointing to the deployed API origin (for example, `https://your-api.example.com`). Set it in the Vercel project's **Production** environment before building. Do not use a localhost value for Preview or Production, and do not put private credentials in Vite variables because they are public in the browser bundle. Task share links use the current browser origin.
+`VITE_BACKEND_URL` is optional at build time. When omitted, frontend API calls use same-origin `/api` paths; this is useful for local development or deployments that proxy the API on the same origin. With the documented separate Vercel frontend and backend projects, set `VITE_BACKEND_URL` to the deployed backend's HTTPS origin before building. Without that setting, Vercel can serve the frontend, but backend-dependent features will not work until an API is available at the same origin. Do not use localhost for Preview or Production, and do not put private credentials in Vite variables because they are public in the browser bundle. Task share links use the current browser origin.
 
 ## Build and start
 

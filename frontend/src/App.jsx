@@ -1,7 +1,7 @@
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import DashboardHome from "./pages/DashboardHome";
+import DashboardHome from "./pages/DashboardHomeRedesign";
 import FinancePage from "./pages/FinancePage";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
@@ -14,7 +14,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { addAuth } from "./redux/slices/authSlice";
 import { setLoading } from "./redux/slices/stateSlice";
 import { TaskCardPublic } from "./components/Model";
-import getHeader from "./utils/header";
 import apiRequest from "./utils/api";
 import { toast } from "react-toastify";
 import Events from "./pages/Events";

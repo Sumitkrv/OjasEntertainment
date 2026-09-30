@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
-const bcrypt = require("bcryptjs");
 
 const dataDirectory = path.join(__dirname, "..", "data");
 const dataFile = process.env.TEST_DATA_FILE || path.join(dataDirectory, "test-data.json");
@@ -62,17 +61,6 @@ const saveData = () => {
 const initializeTestStore = () => {
 	fs.mkdirSync(path.dirname(dataFile), { recursive: true });
 	if (!fs.existsSync(dataFile)) saveData();
-};
-
-const seedDefaultTestUser = () => {
-	if (findUserByEmail("test@example.com")) return;
-	addUser({
-		_id: "test-user-default",
-		name: "Test User",
-		email: "test@example.com",
-		password: bcrypt.hashSync("password123", 8),
-		board: [],
-	});
 };
 
 const addUser = (user) => {
@@ -169,7 +157,6 @@ const createId = (prefix) => `${prefix}-${randomUUID()}`;
 
 module.exports = {
 	initializeTestStore,
-	seedDefaultTestUser,
 	addUser,
 	findUserByEmail,
 	findUserById,

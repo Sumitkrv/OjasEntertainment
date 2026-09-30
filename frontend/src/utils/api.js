@@ -1,4 +1,5 @@
 const backendUrl = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/+$/, "");
+export const apiUrl = (path) => `${backendUrl}${path}`;
 
 const parseResponse = async (response) => {
 	const text = await response.text();
@@ -28,10 +29,7 @@ const parseResponse = async (response) => {
 };
 
 const apiRequest = async (path, options = {}) => {
-	if (!backendUrl) {
-		throw new Error("VITE_BACKEND_URL is not configured");
-	}
-	const response = await fetch(`${backendUrl}${path}`, options);
+	const response = await fetch(apiUrl(path), options);
 	if (response.status === 401 && !path.startsWith("/api/auth/")) {
 		const hadToken = Boolean(localStorage.getItem("token"));
 		localStorage.removeItem("token");
