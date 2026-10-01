@@ -24,10 +24,13 @@ const formatTestTask = (task) => {
 
 const canManageTask = (task, user) => task && (task.userName === user._id || task.assign === user.email);
 const CATEGORIES = new Set(["backlog", "to-do", "in-progress", "done"]);
+const STATUSES = new Set(["backlog", "todo", "in_progress", "done"]);
+const statusToCategory = { backlog: "backlog", todo: "to-do", in_progress: "in-progress", done: "done" };
+const categoryToStatus = { backlog: "backlog", "to-do": "todo", "in-progress": "in_progress", done: "done" };
 const PRIORITIES = new Set(["High Priority", "Moderate Priority", "Low Priority"]);
 const validateTaskInput = (body, { creating = false } = {}) => {
 	if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "Request body must be an object" };
-	const allowed = new Set(["title", "priority", "checklist", "dueDate", "assign"]);
+	const allowed = new Set(["title", "priority", "checklist", "dueDate", "assign", "status"]);
 	const unknown = Object.keys(body).find((key) => !allowed.has(key));
 	if (unknown) return { error: `Unexpected field: ${unknown}` };
 	const data = {};
@@ -50,6 +53,10 @@ const validateTaskInput = (body, { creating = false } = {}) => {
 	if (Object.hasOwn(body, "assign")) {
 		if (body.assign !== "" && (typeof body.assign !== "string" || !/^\S+@\S+\.\S+$/.test(body.assign) || body.assign.length > 254)) return { error: "Invalid assignee email" };
 		data.assign = body.assign ? body.assign.trim().toLowerCase() : "";
+	}
+	if (Object.hasOwn(body, "status")) {
+		if (!STATUSES.has(body.status)) return { error: "Invalid task status" };
+		data.status = body.status;
 	}
 	return { data };
 };
@@ -193,7 +200,7 @@ const getAllTask = async (req, res) => {
 const addTask = async (req, res) => {
 	const validated = validateTaskInput(req.body, { creating: true });
 	if (validated.error) return res.status(400).send({ message: validated.error });
-	const { title, priority, checklist, dueDate, assign } = validated.data;
+	const { title, priority, checklist, dueDate, assign, status = "todo" } = validated.data;
 	const userName = req.user._id;
 	if (!(await assignmentExists(assign))) return res.status(404).send({ message: "Assigned User Not Found" });
 	if (isTestMode) {
@@ -201,7 +208,8 @@ const addTask = async (req, res) => {
 			_id: createId("test-task"),
 			title,
 			priority,
-			category: "to-do",
+			category: statusToCategory[status],
+			status,
 			checklist,
 			userName,
 			assign,
@@ -221,6 +229,8 @@ const addTask = async (req, res) => {
 		dueDate,
 		userName,
 		assign,
+		status,
+		category: statusToCategory[status],
 	});
 	let createTask = await newTask.save();
 	let task = await Task.findById(createTask._id).populate({
@@ -313,7 +323,13 @@ const updateCategory = async (req, res) => {
 		if (!canManageTask(existingTask, req.user)) {
 			return res.status(403).send({ message: "You cannot modify this task" });
 		}
-		const task = updateTestTask(id, { category, updatedAt: new Date().toISOString() });
+		const status = categoryToStatus[category];
+		const now = new Date();
+		const changes = { category, status, updatedAt: now.toISOString() };
+		if (status === "in_progress" && !existingTask.startedAt) changes.startedAt = now.toISOString();
+		if (status === "done") changes.completedAt = now.toISOString();
+		if (status !== "done" && existingTask.completedAt) changes.completedAt = null;
+		const task = updateTestTask(id, changes);
 		return res.status(200).send({
 			message: "success",
 			data: task ? formatTestTask(task) : null,
@@ -329,7 +345,7 @@ const updateCategory = async (req, res) => {
 	}
 	let task = await Task.findByIdAndUpdate(
 		id,
-		{ category: category },
+		{ category: category, status: categoryToStatus[category], updatedAt: new Date() },
 		{ new: true }
 	).populate({
 		path: "userName",
@@ -342,6 +358,27 @@ const updateCategory = async (req, res) => {
 	});
 };
 
+const updateStatus = async (req, res) => {
+	const { id } = req.params;
+	const { status } = req.body || {};
+	if (Object.keys(req.body || {}).some((key) => key !== "status") || !STATUSES.has(status)) return res.status(400).send({ message: "Invalid task status" });
+	const now = new Date();
+	const existingTask = isTestMode ? findTestTaskById(id) : await Task.findById(id);
+	if (!existingTask) return res.status(404).send({ message: "Task Not Found" });
+	const ownerId = isTestMode ? existingTask.userName : existingTask.userName.toString();
+	if (ownerId !== req.user._id.toString() && existingTask.assign !== req.user.email) return res.status(403).send({ message: "You cannot modify this task" });
+	const changes = { status, category: statusToCategory[status], updatedAt: now };
+	if (status === "in_progress" && !existingTask.startedAt) changes.startedAt = now;
+	if (status === "done") changes.completedAt = now;
+	if (status !== "done" && existingTask.completedAt) changes.completedAt = null;
+	if (isTestMode) {
+		const task = updateTestTask(id, { ...changes, updatedAt: now.toISOString(), startedAt: changes.startedAt?.toISOString(), completedAt: changes.completedAt === null ? null : changes.completedAt?.toISOString() });
+		return res.status(200).send({ message: "success", data: formatTestTask(task) });
+	}
+	const task = await Task.findByIdAndUpdate(id, changes, { new: true, runValidators: true }).populate({ path: "userName", select: "name" });
+	return res.status(200).send({ message: "success", data: task });
+};
+
 module.exports = {
 	getTask,
 	getAllTask,
@@ -349,4 +386,5 @@ module.exports = {
 	updateTask,
 	deleteTask,
 	updateCategory,
+	updateStatus,
 };

@@ -17,6 +17,11 @@ const taskSchema = new mongoose.Schema(
 			required: true,
 			default: "to-do",
 		},
+		status: {
+			type: String,
+			enum: ["backlog", "todo", "in_progress", "done"],
+			default: "todo",
+		},
 		checklist: [
 			{
 				name: {
@@ -39,6 +44,8 @@ const taskSchema = new mongoose.Schema(
 		assign: String,
 
 		dueDate: Date,
+		startedAt: Date,
+		completedAt: Date,
 	},
 	{
 		timestamps: true,

@@ -11,7 +11,7 @@ import CheckBoxSelect from "../assets/checkbox_select.png";
 
 const prettyDate = (value) => value ? new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "No due date";
 
-const TaskBox = ({ backlogCollapse, todoCollapse, progressCollapse, doneCollapse, task }) => {
+const TaskBox = ({ backlogCollapse, todoCollapse, progressCollapse, doneCollapse, task, onDragStart, updatingTaskId }) => {
 	const [collapse, setCollapse] = useState(true);
 	const [taskMenuP, setTaskMenuP] = useState(false);
 	const dispatch = useDispatch();
@@ -30,9 +30,11 @@ const TaskBox = ({ backlogCollapse, todoCollapse, progressCollapse, doneCollapse
 	useEffect(() => { setCollapse(true); }, [backlogCollapse, todoCollapse, progressCollapse, doneCollapse]);
 	const initials = task?.userName?.name?.split(" ").map((part) => part[0]).join("").slice(0, 1).toUpperCase() || "S";
 	const priority = (task?.priority || "Task").toLowerCase().replace(/\s+/g, "-");
-	return <article className="task-box">
+	const overdue = task?.category !== "done" && task?.dueDate && new Date(task.dueDate).getTime() < Date.now();
+	return <article className={`task-box${overdue ? " task-overdue" : ""}${updatingTaskId === task?._id ? " task-updating" : ""}`} draggable onDragStart={() => onDragStart?.(task)}>
 		<div className="task-card-top"><LuGripVertical className="task-drag-handle" aria-hidden="true" /><h3 title={task?.title}>{task?.title}</h3><div className="task-menu-wrap"><button className="task-menu-trigger" aria-label={`Actions for ${task?.title}`} onClick={() => { setTaskMenuP((open) => !open); dispatch(setTaskMId(task?._id)); }}><TbDots /></button>{taskMenuP && <TaskMenu setTaskMenuP={setTaskMenuP} id={task?._id} task={task} />}</div></div>
 		<span className={`task-category-tag tag-${priority}`}>{task?.priority || "Task"}</span>
+		{overdue && <span className="task-overdue-badge">Overdue</span>}
 		<div className="task-card-footer"><span className="task-date"><FiCalendar />{prettyDate(task?.dueDate)}</span><span className="task-assignee" title={task?.userName?.name || "Assigned user"}>{initials}</span></div>
 		{checklist.length > 0 && <><button className="task-checklist-toggle" onClick={() => setCollapse(!collapse)}>{`Checklist ${doneItems}/${checklist.length}`} {collapse ? <FiChevronDown /> : <FiChevronUp />}</button><div className={`task-checklist-details ${collapse ? "task-checklist-details-collapse" : ""}`}>{checklist.map((item, index) => <label key={`${task?._id}-${index}`} className="checklist-details-box"> <img src={item.isDone ? CheckBoxSelect : CheckBoxUnselect} alt="" /><span>{item.name}</span></label>)}</div></>}
 		<div className="task-move-actions" aria-label="Move task to another column">{[["backlog", "Backlog"], ["to-do", "To Do"], ["in-progress", "In Progress"], ["done", "Done"]].filter(([category]) => task?.category !== category).map(([category, label]) => <button key={category} onClick={() => handleUpdateCategory(category)}>{label}</button>)}</div>
@@ -45,6 +47,8 @@ TaskBox.propTypes = {
 	progressCollapse: PropTypes.bool,
 	doneCollapse: PropTypes.bool,
 	task: PropTypes.object.isRequired,
+	onDragStart: PropTypes.func,
+	updatingTaskId: PropTypes.string,
 };
 
 export default TaskBox;

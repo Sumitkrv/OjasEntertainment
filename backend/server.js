@@ -148,7 +148,15 @@ const startServer = async () => {
 		});
 		console.log("Database connection established");
 	} catch (error) {
-		console.error(isTestMode ? "Server startup failed; verify required environment." : "MongoDB connection failed; server did not start.");
+		const safeMessage = String(error?.message || "Unknown startup error")
+			.replace(/mongodb(?:\+srv)?:\/\/[^\s"'`]+/gi, "<redacted MongoDB URI>")
+			.slice(0, 500);
+		console.error(JSON.stringify({
+			message: isTestMode ? "Server startup failed; verify required environment." : "MongoDB connection failed; server did not start.",
+			error: error?.name || "Error",
+			code: error?.code,
+			detail: safeMessage,
+		}));
 		process.exit(1);
 	}
 };

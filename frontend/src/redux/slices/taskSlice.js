@@ -21,6 +21,17 @@ const taskSlice = createSlice({
 		setDone: (state, action) => {
 			state.done = action.payload;
 		},
+		moveTask: (state, action) => {
+			const { task, from, to } = action.payload;
+			state[from] = state[from].filter((item) => item._id !== task._id);
+			state[to].push({ ...task, category: { backlog: "backlog", todo: "to-do", inProgress: "in-progress", done: "done" }[to], status: { backlog: "backlog", todo: "todo", inProgress: "in_progress", done: "done" }[to] });
+		},
+		replaceTask: (state, action) => {
+			const task = action.payload;
+			Object.keys(state).forEach((column) => { state[column] = state[column].filter((item) => item._id !== task._id); });
+			const column = { backlog: "backlog", "to-do": "todo", "in-progress": "inProgress", done: "done" }[task.category];
+			if (column) state[column].push(task);
+		},
 		addBacklogTask: (state, action) => {
 			state.backlog = [...state.backlog, action.payload];
 		},
@@ -76,6 +87,8 @@ export const {
 	setTodo,
 	setInProgress,
 	setDone,
+	moveTask,
+	replaceTask,
 	addBacklogTask,
 	addTodoTask,
 	addInProgressTask,

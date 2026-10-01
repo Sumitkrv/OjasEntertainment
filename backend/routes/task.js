@@ -7,6 +7,7 @@ const {
 	updateTask,
 	deleteTask,
 	updateCategory,
+	updateStatus,
 } = require("../controllers/task");
 const wrapAsync = require("../middlewares/wrapAsync");
 const { authorization } = require("../middlewares/authorization");
@@ -17,5 +18,6 @@ router.post("/add", authorization, wrapAsync(addTask));
 router.put("/:id", authorization, wrapAsync(updateTask));
 router.delete("/:id", authorization, wrapAsync(deleteTask));
 router.put("/category/:id", authorization, wrapAsync(updateCategory));
+router.patch("/:id/status", authorization, wrapAsync(updateStatus));
 
 module.exports = router;
