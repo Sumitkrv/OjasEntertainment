@@ -142,7 +142,7 @@ const paymentDelete = async (req, res) => {
 	const payment = await get("payments", req.params.id, req.user._id);
 	if (!payment) return bad(res, "Payment not found", 404);
 	if (isTestMode) updateRecord("payments", req.params.id, { data: { ...payment.data, status: "CANCELLED", cancelledAt: new Date().toISOString() } });
-	else await FinanceRecord.findByIdAndUpdate(req.params.id, { "data.status": "CANCELLED", "data.cancelledAt": new Date().toISOString() });
+	else await FinanceRecord.findOneAndUpdate({ _id: req.params.id, type: "payments", userId: req.user._id }, { "data.status": "CANCELLED", "data.cancelledAt": new Date().toISOString() });
 	const pi = await getParentPi(payment.data, req.user._id);
 	if (pi) await updateInvoiceTotals(pi, req.user._id);
 	await activity(payment.data.eventId, req.user._id, "PAYMENT_CANCELLED", "Payment cancelled", "PAYMENT", payment._id);

@@ -3,6 +3,7 @@ import { FiBarChart2, FiBriefcase, FiChevronLeft, FiChevronRight, FiClipboard, F
 import { Link, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setLogoutM } from "../redux/slices/stateSlice";
+import { Logout } from "../components/Model";
 import ojasLogo from "../assets/ojas-entertainment-logo.png";
 import "../css/Navbar.css";
 
@@ -17,6 +18,7 @@ const Navbar = () => {
 	const location = useLocation();
 	const dispatch = useDispatch();
 	const auth = useSelector((store) => store.auth);
+	const logoutOpen = useSelector((store) => store.state.logoutM);
 	const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const toggle = () => { const next = !collapsed; setCollapsed(next); localStorage.setItem("sidebar-collapsed", String(next)); };
@@ -29,6 +31,7 @@ const Navbar = () => {
 			<div className="nav-bottom"><div className="nav-profile"><span className="profile-avatar">{(auth?.name || "U").slice(0, 1).toUpperCase()}</span><span className="profile-copy"><strong>{auth?.name || "Workspace user"}</strong><small>{auth?.email || "Operations"}</small></span><span className="profile-chevron-wrap"><FiChevronRight className="profile-chevron" /></span></div><button className="nav-logout" onClick={() => dispatch(setLogoutM(true))}><FiLogOut /><span>Log out</span></button></div>
 		</aside>
 		{mobileOpen && <button className="nav-backdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+		{logoutOpen && <Logout />}
 	</>;
 };
 export default Navbar;

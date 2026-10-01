@@ -54,19 +54,19 @@ const updateUser = async (req, res) => {
 			data: publicUser(userData),
 		});
 	}
-	if (req.user.email != email) {
-		const existingUser = await User.findOne({ email: email });
+	if (req.user.email !== email) {
+		const existingUser = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
 		if (existingUser) {
 			return res.status(400).json({ message: `Email Already Used` });
 		}
 	}
-	const user = await User.findById(req.user.id);
+	const user = await User.findById(req.user._id);
 	if (!user) return res.status(404).json({ message: "User Not Found" });
 	const passwordEqual = await bcrypt.compare(oldPassword, user.password);
 	if (passwordEqual) {
 		newPassword = await bcrypt.hash(newPassword, 12);
 		const userData = await User.findByIdAndUpdate(
-			req.user.id,
+			req.user._id,
 			{
 				name: name,
 				email: email,
@@ -113,9 +113,13 @@ const updateBoard = async (req, res) => {
 			email,
 		});
 	}
+	const targetUser = await User.findOne({ email }).select("_id").collation({ locale: "en", strength: 2 });
+	if (!targetUser) return res.status(404).json({ message: "User Not Found" });
+	if (targetUser._id.equals(req.user._id)) return res.status(400).json({ message: "You cannot add yourself" });
+	if (req.user.board?.includes(email)) return res.status(409).json({ message: "User is already on your board" });
 	const userData = await User.findByIdAndUpdate(
 		req.user._id,
-		{ $push: { board: email } },
+		{ $addToSet: { board: email } },
 		{ new: true }
 	);
 	userData.password = null;

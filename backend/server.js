@@ -148,7 +148,7 @@ const startServer = async () => {
 		});
 		console.log("Database connection established");
 	} catch (error) {
-		console.error("Server startup failed; verify required environment and database availability.");
+		console.error(isTestMode ? "Server startup failed; verify required environment." : "MongoDB connection failed; server did not start.");
 		process.exit(1);
 	}
 };

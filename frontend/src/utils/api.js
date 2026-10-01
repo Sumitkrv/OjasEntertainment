@@ -1,7 +1,7 @@
 const backendUrl = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/+$/, "");
 export const apiUrl = (path) => `${backendUrl}${path}`;
 
-const parseResponse = async (response) => {
+const parseResponse = async (response, path) => {
 	const text = await response.text();
 	const contentType = response.headers.get("content-type") || "";
 	if (response.ok && text && !/(?:application|text)\/(?:[a-z.+-]*\+)?json\b/i.test(contentType)) {
@@ -30,6 +30,12 @@ const parseResponse = async (response) => {
 			422: "Please check the submitted values",
 			429: "Too many requests. Please try again shortly",
 		};
+		const isAuthRequest = path.startsWith("/api/auth/");
+		if (response.status === 401 && isAuthRequest) {
+			const error = new Error(data.message || "Invalid email or password");
+			error.status = response.status;
+			throw error;
+		}
 		const noBackendMessage = !backendUrl && [404, 405].includes(response.status)
 			? "No backend is connected to this deployment. Run the local backend for local testing, or configure VITE_BACKEND_URL after deploying an API."
 			: null;
@@ -47,7 +53,7 @@ const apiRequest = async (path, options = {}) => {
 		localStorage.removeItem("token");
 		if (hadToken) window.dispatchEvent(new Event("app:session-expired"));
 	}
-	return parseResponse(response);
+	return parseResponse(response, path);
 };
 
 export default apiRequest;

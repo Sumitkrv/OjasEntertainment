@@ -1,4 +1,5 @@
 const { getUserIdFromToken } = require("../config/jwtProvider");
+const mongoose = require("mongoose");
 const User = require("../models/user");
 const wrapAsync = require("./wrapAsync");
 const { findUserById } = require("../config/testStore");
@@ -17,6 +18,9 @@ const authorization = wrapAsync(async (req, res, next) => {
 	try {
 		userId = getUserIdFromToken(token);
 	} catch (error) {
+		return res.status(401).json({ message: "Invalid or expired token" });
+	}
+	if (!userId || (!isTestMode && !mongoose.Types.ObjectId.isValid(userId))) {
 		return res.status(401).json({ message: "Invalid or expired token" });
 	}
 	if (userId) {

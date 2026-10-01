@@ -230,7 +230,8 @@ const update = (type) => async (req, res) => {
 		const data = calculate(type, input, received);
 		data.updatedAt = new Date().toISOString();
 		if (type === "proforma" && (await relatedRecords("proforma", req.user._id)).some((record) => record._id !== req.params.id && record.data.piNumber === data.piNumber)) return res.status(409).json({ message: "Duplicate PI number" });
-		const updated = isTestMode ? updateRecord(type, req.params.id, { data }) : await FinanceRecord.findByIdAndUpdate(req.params.id, { data }, { new: true });
+		const updated = isTestMode ? updateRecord(type, req.params.id, { data }) : await FinanceRecord.findOneAndUpdate({ _id: req.params.id, type, userId: req.user._id }, { data }, { new: true });
+		if (!updated) return res.status(404).json({ message: "Record not found" });
 		if (["proforma", "payouts", "work"].includes(type)) await addActivity(data.eventId || existing.data.eventId, req.user._id, `${type.toUpperCase()}_UPDATED`, `${type === "proforma" ? "Proforma Invoice" : type === "payouts" ? "Payout" : "Daily work"} updated`, type.toUpperCase(), req.params.id);
 		res.json({ message: "success", data: serialize(isTestMode ? updated : { _id: updated._id.toString(), data: updated.data }) });
 	} catch (error) { return controllerFailure(res, error, "Unable to update finance record"); }
@@ -255,7 +256,7 @@ const remove = (type) => async (req, res) => {
 			const linkedDocuments = await relatedRecords("documents", req.user._id);
 			if (linkedDocuments.some((record) => String(record.data.relatedEntityId) === String(req.params.id))) return res.status(409).json({ message: "Cannot delete a record with related documents" });
 		}
-		if (isTestMode) deleteRecord(type, req.params.id); else await FinanceRecord.findByIdAndDelete(req.params.id);
+		if (isTestMode) deleteRecord(type, req.params.id); else await FinanceRecord.findOneAndDelete({ _id: req.params.id, type, userId: req.user._id });
 		res.json({ message: "success" });
 };
 
@@ -269,17 +270,21 @@ const uploadCheque = async (req, res) => {
 	let storedFile;
 	try {
 	if (existing.data.chequeDocumentId) {
-		const oldDocument = isTestMode ? findRecordById("documents", existing.data.chequeDocumentId) : await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id });
+		const oldDocument = !isSafeRecordId(existing.data.chequeDocumentId, isTestMode)
+			? null
+			: isTestMode
+				? findRecordById("documents", existing.data.chequeDocumentId)
+				: await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id });
 		if (oldDocument?.data.storageId) await removeUpload(oldDocument.data);
 		else if (isStoredCheque(oldDocument?.data.storagePath)) await removeUpload(oldDocument.data);
 		if (oldDocument && isTestMode) deleteRecord("documents", existing.data.chequeDocumentId);
-		if (oldDocument && !isTestMode) await FinanceRecord.findByIdAndDelete(existing.data.chequeDocumentId);
+		if (oldDocument && !isTestMode) await FinanceRecord.findOneAndDelete({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id });
 	}
 	storedFile = await saveUpload(req.file);
 	const data = { ...existing.data, chequePhoto: { name: req.file.originalname, ...storedFile } };
 	const document = await addDocument({ ...existing, data }, req.user._id, req.file, storedFile);
 	data.chequeDocumentId = document._id;
-	if (isTestMode) updateRecord("payouts", req.params.id, { data }); else await FinanceRecord.findByIdAndUpdate(req.params.id, { data });
+	if (isTestMode) updateRecord("payouts", req.params.id, { data }); else await FinanceRecord.findOneAndUpdate({ _id: req.params.id, type: "payouts", userId: req.user._id }, { data });
 	await addActivity(data.eventId, req.user._id, "DOCUMENT_REPLACED", "Cheque document uploaded or replaced", "DOCUMENT", document._id);
 	res.json({ message: "success", data: serialize({ _id: req.params.id, data }) });
 	} catch (error) {
@@ -293,7 +298,9 @@ const getCheque = async (req, res) => {
 	if (!isSafeRecordId(req.params.id, isTestMode)) return res.status(404).json({ message: "Payout not found" });
 	const existing = isTestMode ? findRecordById("payouts", req.params.id) : await FinanceRecord.findOne({ _id: req.params.id, type: "payouts", userId: req.user._id });
 	if (!existing || (isTestMode && !owns(existing, req.user._id))) return res.status(404).json({ message: "Cheque image not found" });
-	const document = existing.data.chequeDocumentId ? (isTestMode ? findRecordById("documents", existing.data.chequeDocumentId) : await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id })) : null;
+	const document = existing.data.chequeDocumentId && isSafeRecordId(existing.data.chequeDocumentId, isTestMode)
+		? (isTestMode ? findRecordById("documents", existing.data.chequeDocumentId) : await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id }))
+		: null;
 	if (document?.data.storageId) return sendUpload(res, document.data);
 	if (!isStoredCheque(existing.data.chequePhoto?.path) || !fs.existsSync(existing.data.chequePhoto.path)) return res.status(404).json({ message: "Cheque image not found" });
 	return sendUpload(res, { mimeType: "image/jpeg" }, path.resolve(existing.data.chequePhoto.path));
@@ -304,14 +311,16 @@ const deleteCheque = async (req, res) => {
 	const existing = isTestMode ? findRecordById("payouts", req.params.id) : await FinanceRecord.findOne({ _id: req.params.id, type: "payouts", userId: req.user._id });
 	if (!existing || (isTestMode && !owns(existing, req.user._id))) return res.status(404).json({ message: "Payout not found" });
 	if (existing.data.chequeDocumentId) {
-		const document = isTestMode ? findRecordById("documents", existing.data.chequeDocumentId) : await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id });
+		const document = isSafeRecordId(existing.data.chequeDocumentId, isTestMode)
+			? (isTestMode ? findRecordById("documents", existing.data.chequeDocumentId) : await FinanceRecord.findOne({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id }))
+			: null;
 		if (document?.data.storageId) await removeUpload(document.data);
 		else if (isStoredCheque(document?.data.storagePath || existing.data.chequePhoto?.path)) await removeUpload({ storagePath: document?.data.storagePath || existing.data.chequePhoto.path });
 		if (isTestMode) deleteRecord("documents", existing.data.chequeDocumentId);
-		else await FinanceRecord.findByIdAndDelete(existing.data.chequeDocumentId);
+		else await FinanceRecord.findOneAndDelete({ _id: existing.data.chequeDocumentId, type: "documents", userId: req.user._id });
 	}
 	const data = { ...existing.data, chequePhoto: null };
-	if (isTestMode) updateRecord("payouts", req.params.id, { data }); else await FinanceRecord.findByIdAndUpdate(req.params.id, { data });
+	if (isTestMode) updateRecord("payouts", req.params.id, { data }); else await FinanceRecord.findOneAndUpdate({ _id: req.params.id, type: "payouts", userId: req.user._id }, { data });
 	await addActivity(data.eventId, req.user._id, "DOCUMENT_DELETED", "Cheque document deleted", "PAYOUT", req.params.id);
 	res.json({ message: "success" });
 };

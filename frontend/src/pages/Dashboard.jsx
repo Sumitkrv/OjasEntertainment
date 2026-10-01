@@ -9,7 +9,6 @@ import "../css/Dashboard.css";
 import {
 	AddedPeople,
 	AddPeople,
-	Logout,
 	TaskCard,
 	TaskDelete,
 	UpdateCategory,
@@ -26,7 +25,6 @@ const Dashboard = () => {
 			{["events", "proforma", "payouts", "work"].includes(state.dashboardSection) && <FinanceModule type={state.dashboardSection} />}
 			{state.addPeopleM && <AddPeople />}
 			{state.addedPeopleM && <AddedPeople />}
-			{state.logoutM && <Logout />}
 			{state.taskDeleteM && <TaskDelete />}
 			{state.taskCardM && <TaskCard />}
 			{state.updateCategoryM && <UpdateCategory />}

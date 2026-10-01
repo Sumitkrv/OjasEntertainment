@@ -38,11 +38,10 @@ const registerUser = async (req, res, next) => {
 			token: generateToken(user._id),
 		});
 	}
-	const existingUser = await User.findOne({ email: email });
+	const existingUser = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
 	if (existingUser) {
 		return res.status(409).json({ message: "User already exists" });
 	}
-	password = bcrypt.hashSync(password, 8);
 	const userData = new User({
 		name: name.trim(),
 		email,
@@ -73,7 +72,7 @@ const loginUser = async (req, res) => {
 			token: generateToken(user._id),
 		});
 	}
-	let user = await User.findOne({ email: email });
+	let user = await User.findOne({ email }).collation({ locale: "en", strength: 2 });
 	if (!user) {
 		return res.status(401).json({ message: "Invalid email or password" });
 	}
